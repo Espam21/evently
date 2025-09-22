@@ -34,11 +34,50 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
   late ProviderSubscription<AsyncValue<void>> signupSub;
 
   @override
+  @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.invalidate(signupProvider);
-      listenToSignUp(context: context, ref: ref);
+      signupSub = ref.listenManual(signupProvider, (previous, next) {
+        next.whenOrNull(
+          loading: () {
+            showDialog(
+              context: context,
+              builder: (_) => const Center(child: CircularProgressIndicator()),
+            );
+          },
+          data: (_) {
+            if (Navigator.canPop(context)) Navigator.pop(context);
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                behavior: SnackBarBehavior.floating,
+                content: Text('Account created successfully'),
+                backgroundColor: Colors.green,
+                action: SnackBarAction(
+                  label: 'ok',
+                  onPressed: () => ScaffoldMessenger.of(context).hideCurrentSnackBar(),
+                ),
+              ),
+            );
+            ref.invalidate(loginProvider);
+            Navigator.pushNamed(context, AppRoutes.login);
+          },
+          error: (err, _) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                behavior: SnackBarBehavior.floating,
+                content: Text(err.toString()),
+                backgroundColor: Colors.red,
+                action: SnackBarAction(
+                  label: 'ok',
+                  onPressed: () => ScaffoldMessenger.of(context).hideCurrentSnackBar(),
+                ),
+              ),
+            );
+          },
+        );
+      });
     });
   }
 
